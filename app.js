@@ -1,6 +1,9 @@
 "use strict";
 
-process.env.MODULE_DEBUG = (process.NODE_ENV == 'production' ? false : true);
+// Debug mode for axm
+if (process.env.NODE_ENV === 'development') {
+    process.env.MODULE_DEBUG = true;
+}
 
 var exec = require('child_process').exec;
 var pmx = require('pmx');
@@ -28,11 +31,11 @@ var conf = pmx.initModule({}, (err, conf) => {
     // PM2 log event listener
     pm2.launchBus((err, bus) => {
         bus.on('*', (event, msg) => {
-            if (event == 'process:event' && msg.event == 'online') {
+            if (event === 'process:event' && msg.event === 'online') {
                 logToLogger(`Process ${ msg.process.name } restarted ${ msg.process.restart_time }`);
                 console.log('Process %s restarted %s', msg.process.name, msg.process.restart_time);
             }
-            if (event == 'log:err') {
+            if (event === 'log:err') {
                 logToLogger(msg.data);
             }
         });
