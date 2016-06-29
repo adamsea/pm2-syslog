@@ -1,24 +1,39 @@
+"use strict";
+
 process.env.MODULE_DEBUG = (process.NODE_ENV == 'production' ? false : true);
 
+var exec = require('child_process').exec;
 var pmx = require('pmx');
+var pm2 = require('pm2');
 
-var conf = pmx.initModule({}, function (err, conf) {
+var conf = pmx.initModule({}, (err, conf) => {
 
-    var SysLogger = require('ain2');
-    var logger = new SysLogger();
-    var pm2 = require('pm2');
+    var escapeCmd = function (msg) {
+        if (/[^A-Za-z0-9_\/:=-]/.test(msg)) {
+            msg = "'" + msg.replace(/'/g, "'\\''") + "'";
+            msg = msg
+                // unduplicate single-quote at the beginning
+                .replace(/^(?:'')+/g, '')
+                // remove non-escaped single-quote if there are enclosed between 2 escaped
+                .replace(/\\'''/g, "\\'");
+        }
+        return msg;
+    };
 
-    pm2.launchBus(function (err, bus) {
-        bus.on('*', function (event, msg) {
+    var logToLogger = (message) => {
+        message = escapeCmd(message);
+        exec(`/usr/bin/logger -t nodepm2logs ${ message }`);
+    };
+
+    // PM2 log event listener
+    pm2.launchBus((err, bus) => {
+        bus.on('*', (event, msg) => {
             if (event == 'process:event' && msg.event == 'online') {
-                logger.log('Process %s restarted %s', msg.process.name, msg.process.restart_time, function () {
-                    console.log(arguments)
-                });
+                logToLogger(`Process ${ msg.process.name } restarted ${ msg.process.restart_time }`);
                 console.log('Process %s restarted %s', msg.process.name, msg.process.restart_time);
             }
             if (event == 'log:err') {
-                logger.error('%s', msg.data);
-                console.log(msg.data);
+                logToLogger(msg.data);
             }
         });
     });

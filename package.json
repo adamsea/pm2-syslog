@@ -7,7 +7,6 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "ain2": "^2.0.0",
     "pm2": "^1.1.3",
     "pmx": "^0.6.2"
   },
